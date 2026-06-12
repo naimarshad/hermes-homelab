@@ -1,0 +1,96 @@
+services:
+  hermes:
+    # Built from Containerfile: upstream pin (Docker Hub, never :latest) plus
+    # apt deps the stock image lacks. Bump the upstream tag in the
+    # Containerfile FROM line.
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: hermes-custom:local
+
+    container_name: hermes
+    restart: unless-stopped
+    command: gateway run
+    shm_size: 1g                       # needed for browser/Playwright skills
+
+    # Docker group on the host — needed for the docker.sock mount.
+    # Find yours: getent group docker | cut -d: -f3
+    group_add:
+      - "995"
+
+    ports:
+      # Bind to the host's LAN IP (change 192.168.1.100 to yours) so a reverse
+      # proxy / Cloudflare Tunnel can reach it directly. Never expose beyond
+      # the LAN without auth in front.
+      - "192.168.1.100:8642:8642"
+      # Web dashboard (container port 9119, host 8643). Basic-auth creds live
+      # in data/.env: HERMES_DASHBOARD_BASIC_AUTH_USERNAME / _PASSWORD / _SECRET
+      - "192.168.1.100:8643:9119"
+
+    environment:
+      # Run as your host user so bind-mounted files stay editable on the host
+      PUID: 1000
+      PGID: 1000
+      # Cron schedules have no per-job tz in Hermes — pin the container TZ to
+      # whatever your schedules assume
+      TZ: Europe/Berlin
+      # NOTE: do NOT override PATH here — it would wipe the image's
+      # /opt/hermes/bin shim + venv entries. /opt/bin is prepended in the
+      # Containerfile instead, where ${PATH} expands the image's value.
+      # API server (health endpoint + OpenAI-compatible API). Must bind 0.0.0.0
+      # inside the container or the published port can't reach it (defaults to
+      # container-loopback). API_SERVER_KEY (min 8 chars) lives in
+      # /selfhost/hermes/data/.env, not here.
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: 0.0.0.0
+      # Supervised web dashboard (s6 service; binds 0.0.0.0 in-container by default)
+      HERMES_DASHBOARD: "1"
+
+    # Host layout: one root /selfhost/hermes/ with per-purpose subdirectories.
+    volumes:
+      # Hermes persistent home: config.yaml, .env (secrets, chmod 600),
+      # sessions/, memory/, skills/ (bundled + agent-auto-generated), logs/
+      - /selfhost/hermes/data:/opt/data
+
+      # NOTE: avoid mounts nested under /opt/data — if the data directory sits
+      # on NFS, nested binds over it can deliver writes to the underlay
+      # non-deterministically (cron writes landed in the underlay while exec
+      # saw the nested mount). Keep all mounts siblings under /opt/.
+
+      # Hand-authored skills, kept apart from the bundled catalog so
+      # `hermes update` never re-seeds/overwrites them.
+      # Must be registered in config.yaml:
+      #   skills:
+      #     external_dirs:
+      #       - /opt/custom-skills
+      - /selfhost/hermes/custom-skills:/opt/custom-skills
+
+      # Extra tool binaries (kubectl, jq, yq...) — drop on host, no rebuild needed
+      - /selfhost/hermes/extra-bins:/opt/bin
+
+      # Shell and python scripts written by the agent
+      - /selfhost/hermes/scripts:/opt/scripts
+
+      # Obsidian vault so the agent can write markdown/notes (optional)
+      - /selfhost/hermes/Obsidian:/opt/obsidian
+
+      # Docker control (container runs as UID 1000 + docker group; no root
+      # fs/process access). Remove if your agent shouldn't manage containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    # /health only responds when the API server is enabled (env above)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8642/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s              # s6 supervisor needs time to bring the gateway up
+
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+          cpus: "1.0"

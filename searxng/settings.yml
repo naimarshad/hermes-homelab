@@ -1,0 +1,19 @@
+# SearXNG settings for a homelab instance consumed by the Hermes agent.
+# Copy to /selfhost/searxng/config/settings.yml (Phase 1 in README).
+# Everything not listed here falls back to upstream defaults.
+use_default_settings: true
+
+server:
+  # secret_key is injected via the SEARXNG_SECRET env var — do not set it here.
+  # LAN-only instance behind no proxy: the bot-detection limiter would block
+  # Hermes's API-style requests (and needs valkey). Re-enable + add a valkey
+  # service before ever exposing this publicly.
+  limiter: false
+  image_proxy: true
+
+search:
+  # json is required for API consumers (Hermes calls /search?format=json);
+  # upstream default allows html only.
+  formats:
+    - html
+    - json

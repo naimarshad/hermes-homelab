@@ -1,0 +1,36 @@
+services:
+  searxng:
+    # Pin a dated tag from hub.docker.com/r/searxng/searxng/tags (rolling releases)
+    image: searxng/searxng:2026.6.12-de8a3de15
+    container_name: searxng
+    restart: unless-stopped
+
+    ports:
+      # LAN-only; change 192.168.1.100 to your host's LAN IP. Host port 8010
+      # is arbitrary — the Hermes agent consumes it via SEARXNG_URL in its
+      # data/.env
+      - "192.168.1.100:8010:8080"
+
+    environment:
+      SEARXNG_BASE_URL: http://192.168.1.100:8010/
+      # Set SEARXNG_SECRET in the shell or your stack manager's env vars
+      # (openssl rand -hex 32). It overrides server.secret_key — never commit it.
+      SEARXNG_SECRET: ${SEARXNG_SECRET}
+
+    volumes:
+      # settings.yml lives here — copy ./settings.yml from this repo dir (Phase 1)
+      - /selfhost/searxng/config:/etc/searxng
+
+    # /healthz is SearXNG's built-in health endpoint; busybox wget ships in the image
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"

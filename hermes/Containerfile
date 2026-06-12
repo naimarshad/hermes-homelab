@@ -1,0 +1,30 @@
+# Custom image: apt deps for skills that the stock image lacks (sandbox is
+# read-only at runtime, so no apt install there; tmux needs shared libs, so
+# extra-bins drop-in doesn't cover it either).
+# Stock image already ships: curl, git, ripgrep, ffmpeg, tar, ca-certificates,
+# node, docker CLI (verified 2026-06-12 against v2026.6.5).
+FROM nousresearch/hermes-agent:v2026.6.5
+
+RUN apt-get update && apt-get install -y \
+    jq \
+    tmux \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Best-effort patch of agent-browser npm advisories flagged by hermes doctor.
+# Compatible upgrades only (no --force); || true so a registry hiccup or an
+# unfixable advisory never blocks the image build.
+RUN cd /opt/hermes && npm audit fix || true
+
+# Prepend the host-mounted drop-in bin dir. Must happen here (not compose
+# environment:) so the image's own PATH — /opt/hermes/bin shim, venv,
+# /opt/data/.local/bin — is preserved via build-time expansion.
+ENV PATH="/opt/bin:${PATH}"
+
+# Optionally bake static binaries into the image instead of the /opt/bin mount:
+# COPY --chmod=755 extra-bins/ /usr/local/bin/
+
+# Stay root: upstream's final USER is root — s6 /init must start as root and
+# drops to the "hermes" user (remapped to PUID/PGID). There is no "node" user
+# in this image; setting USER node breaks container start.
+USER root

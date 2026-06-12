@@ -1,0 +1,8 @@
+# Secrets never enter this repo — they live in /selfhost/hermes/data/.env on the host
+.env
+*.env
+!*.env.example
+
+# Local data / scratch
+data/
+*.tar.gz
