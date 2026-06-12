@@ -1,4 +1,4 @@
-# 🪽 Hermes Homelab
+# Hermes Homelab
 
 **A self-hosted AI agent that texts you on Telegram, watches the web for you, writes its own scripts, and survives image upgrades.**
 
