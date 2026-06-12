@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time migration of OpenClaw cron jobs → Hermes. Run on the Docker host
-# after the Hermes stack is up. These are my real 7 jobs with the Telegram
+# after the Hermes stack is up. These are my real 5 jobs with the Telegram
 # chat ID swapped for a placeholder — adapt the prompts, keep the structure.
 #
 # Source: /selfhost/openclaw/data/cron/jobs.json (all cron-expr, tz
@@ -31,24 +31,6 @@ chmod +x /selfhost/hermes/scripts/update-*.sh 2>/dev/null || true
 echo "== Phase 2: create Hermes cron jobs =="
 create() { docker exec hermes hermes cron create "$@"; }
 
-create "0 8 * * 1,5" \
-"Check the Bahn familienticket page for changes AND check for family holiday ticket mentions across Europe.
-
-Bahn familienticket:
-- Fetch https://www.bahn.de/service/individuelle-reise/kinder/familienticket and extract the content as markdown
-- Read the last known content from /opt/data/home/workspace/familienticket_last.txt
-- Compare; if they differ, summarize what changed and update the stored file
-
-European family holiday ticket news:
-- Search the web for recent mentions with queries: \"family holiday ticket\" Europe, \"family train ticket\" Europe, \"kinder ticket\" Europe, \"familienticket\" Europe, \"family vacation ticket\" Europe
-- Read the last known summary from /opt/data/home/workspace/euro_family_ticket_news_last.txt
-- If there are new relevant mentions, summarize them and update the stored file
-
-If web search fails, note the issue but still do the Bahn check.
-If neither source changed, start your final response with [SILENT]." \
-  --name "Check Bahn familienticket and European family holiday ticket news" \
-  --deliver "$CHAT"
-
 create "0 9 * * 1,5" \
 "Check the Bahn offers page for Europe summer offers.
 - Fetch https://www.bahn.com/en/view/offers/index.shtml and extract the content as markdown
@@ -56,22 +38,6 @@ create "0 9 * * 1,5" \
 - Compare; if they differ, summarize the changes relevant to summer offers and overwrite the stored file with the new content
 - If nothing changed, start your final response with [SILENT]" \
   --name "Check Europe summer offers" \
-  --deliver "$CHAT"
-
-create "0 10 * * 1,5" \
-"Check family train offers across European rail operators AND search for family holiday ticket news.
-
-Part 1 — operator pages (handle each independently; skip failures and continue):
-1. Deutsche Bahn: https://www.bahn.de/service/individuelle-reise/kinder/familienticket
-2. SNCF: https://www.sncf.com/en/train-ticket/reduction/family
-3. OEBB: https://www.oebb.at/en/ticket-offers/
-4. NS International: https://www.nsinternational.com/en
-For each: fetch and extract as markdown, compare against /opt/data/home/workspace/{operator}_family_last.txt, and if different summarize the change and update the stored file.
-
-Part 2 — news: search the web for \"family holiday ticket\" / \"family train ticket\" / \"kinder ticket\" Europe (recent results), compare against /opt/data/home/workspace/euro_family_ticket_news_last.txt, summarize anything new and update the stored file.
-
-If every fetch failed, report the failure. If nothing changed anywhere, start your final response with [SILENT]." \
-  --name "Check European family train offers and holiday ticket news" \
   --deliver "$CHAT"
 
 create "0 0 * * 1,5" \

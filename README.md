@@ -12,7 +12,7 @@ It exists because I ran OpenClaw for months, switched to Hermes in June 2026, an
 
 - 🚀 **A pinned, reproducible Compose stack** — custom image build, healthcheck, resource limits, non-root runtime
 - 🔍 **Self-hosted web search** via SearXNG — no search API keys, no rate limits
-- ⏰ **7 real-world cron jobs** as worked examples (price watchers, news digests) with the OpenClaw → Hermes translation rules
+- ⏰ **5 real-world cron jobs** as worked examples (an offer watcher, daily news digests) with the OpenClaw → Hermes translation rules
 - 🧠 **A memory & state migration guide** — carry your agent's accumulated knowledge to the new brain
 - 🩹 **A troubleshooting section written in blood** — every entry is something that actually broke
 

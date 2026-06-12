@@ -1,6 +1,6 @@
 # OpenClaw → Hermes Migration Kit
 
-How I moved a live OpenClaw deployment (Telegram gateway, 7 cron jobs, months of accumulated notes and state) to Hermes Agent with zero data loss and no flag day.
+How I moved a live OpenClaw deployment (Telegram gateway, a handful of cron jobs, months of accumulated notes and state) to Hermes Agent with zero data loss and no flag day.
 
 **The strategy: run both side by side.** Deploy Hermes next to OpenClaw (different ports, different host directories), migrate state and jobs, watch both for 24–48 hours, then decommission OpenClaw. At no point is there a moment where neither agent works.
 
@@ -61,7 +61,7 @@ This beats a raw copy: the agent deduplicates, drops stale facts, and stores eve
 
 ## Part 2: Cron Jobs
 
-OpenClaw kept jobs in `data/cron/jobs.json`; Hermes creates them via `hermes cron create`. [`migrate-cron.example.sh`](migrate-cron.example.sh) is my actual migration script (7 jobs: rail-offer watchers and daily news digests) with the chat ID swapped for a placeholder — adapt the prompts, keep the structure.
+OpenClaw kept jobs in `data/cron/jobs.json`; Hermes creates them via `hermes cron create`. [`migrate-cron.example.sh`](migrate-cron.example.sh) is my actual migration script (5 jobs: a rail-offer watcher and daily news digests) with the chat ID swapped for a placeholder — adapt the prompts, keep the structure.
 
 ### Translation rules (the important part)
 
